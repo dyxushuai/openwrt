@@ -5,13 +5,15 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=pdnsd
-PKG_VERSION:=1.2.9b-par
-PKG_RELEASE:=3
+PKG_VERSION:=1.2.9b
+PKG_RELEASE:=4
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/shadowsocks/pdnsd.git
 PKG_SOURCE_DATE:=2012-04-26
 PKG_SOURCE_VERSION:=a8e46ccba7b0fa2230d6c42ab6dcd92926f6c21d
+PKG_SOURCE:=pdnsd-1.2.9b-par.tar.zst
+PKG_SOURCE_SUBDIR:=pdnsd-1.2.9b-par
 PKG_MIRROR_HASH:=387f991f9c4fe33dedb6028626ecf8aed4b6c5cacaa6f07bf48668e4cfdd8e14
 
 PKG_BUILD_PARALLEL:=1
