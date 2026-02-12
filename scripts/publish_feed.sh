@@ -73,19 +73,17 @@ docker run --rm \
   -v "$SITE_DIR:/site" \
   -v "$KEY_DIR:/keys" \
   alpine:3.20 sh -euc '
-    apk add --no-cache apk-tools >/dev/null
+    apk add --no-cache apk-tools abuild >/dev/null
     for d in /site/snapshots/packages/*/custom; do
       [ -d "$d" ] || continue
       cd "$d"
       ls *.apk >/dev/null 2>&1 || continue
       rm -f packages.adb
-      apk mkndx \
-        --root /tmp \
-        --keys-dir /keys \
+      apk index \
         --allow-untrusted \
-        --sign /keys/feed.rsa \
         --output packages.adb \
         ./*.apk
+      abuild-sign -k /keys/feed.rsa packages.adb
     done
   '
 
