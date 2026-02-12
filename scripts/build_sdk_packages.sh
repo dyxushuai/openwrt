@@ -74,6 +74,7 @@ echo "src-git coolsnowwolf_luci $COOLSNOWWOLF_LUCI_URL" >> feeds.conf
 echo "src-link local $REPO_DIR" >> feeds.conf
 
 ./scripts/feeds update -a
+touch .config
 
 install_feed_package() {
   local pkg="$1"
@@ -102,7 +103,9 @@ make defconfig
 for pkg in "${PACKAGES[@]}"; do
   echo "Compiling package: $pkg"
   if ! make "package/${pkg}/compile" -j"$(nproc)" V=s; then
-    make "package/feeds/local/${pkg}/compile" -j"$(nproc)" V=s
+    feed_pkg_dir="$(find package/feeds -mindepth 2 -maxdepth 2 -type d -name "$pkg" | head -n 1 || true)"
+    [[ -n "$feed_pkg_dir" ]] || { echo "Unable to resolve build target for package: $pkg" >&2; exit 1; }
+    make "${feed_pkg_dir}/compile" -j"$(nproc)" V=s
   fi
 done
 
