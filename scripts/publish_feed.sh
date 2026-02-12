@@ -7,7 +7,9 @@ Usage:
   scripts/publish_feed.sh \
     --artifacts-dir <dir> \
     --site-dir <dir> \
-    --key-name <name.pub>
+    --key-name <name.pub> \
+    --sdk-url <url> \
+    --sdk-dir-glob <glob>
 
 Environment:
   APK_SIGN_PRIVATE_KEY_B64  Base64-encoded private key for index signing
@@ -22,12 +24,16 @@ EOF
 ARTIFACTS_DIR=""
 SITE_DIR=""
 KEY_NAME=""
+SDK_URL=""
+SDK_DIR_GLOB=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --artifacts-dir) ARTIFACTS_DIR="${2:-}"; shift 2 ;;
     --site-dir) SITE_DIR="${2:-}"; shift 2 ;;
     --key-name) KEY_NAME="${2:-}"; shift 2 ;;
+    --sdk-url) SDK_URL="${2:-}"; shift 2 ;;
+    --sdk-dir-glob) SDK_DIR_GLOB="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -36,10 +42,14 @@ done
 [[ -n "$ARTIFACTS_DIR" ]] || { echo "Missing --artifacts-dir" >&2; exit 1; }
 [[ -n "$SITE_DIR" ]] || { echo "Missing --site-dir" >&2; exit 1; }
 [[ -n "$KEY_NAME" ]] || { echo "Missing --key-name" >&2; exit 1; }
+[[ -n "$SDK_URL" ]] || { echo "Missing --sdk-url" >&2; exit 1; }
+[[ -n "$SDK_DIR_GLOB" ]] || { echo "Missing --sdk-dir-glob" >&2; exit 1; }
 [[ -d "$ARTIFACTS_DIR" ]] || { echo "Artifacts dir not found: $ARTIFACTS_DIR" >&2; exit 1; }
 [[ -n "${APK_SIGN_PRIVATE_KEY_B64:-}" ]] || { echo "Missing APK_SIGN_PRIVATE_KEY_B64" >&2; exit 1; }
 [[ -n "${APK_SIGN_PUBLIC_KEY:-}" ]] || { echo "Missing APK_SIGN_PUBLIC_KEY" >&2; exit 1; }
-command -v docker >/dev/null || { echo "Missing command: docker" >&2; exit 1; }
+for cmd in curl tar find sha256sum; do
+  command -v "$cmd" >/dev/null || { echo "Missing command: $cmd" >&2; exit 1; }
+done
 
 ARTIFACTS_DIR="$(cd "$ARTIFACTS_DIR" && pwd -P)"
 mkdir -p "$SITE_DIR"
@@ -49,10 +59,21 @@ mkdir -p "$SITE_DIR/checksums"
 
 printf '%s' "$APK_SIGN_PUBLIC_KEY" > "$SITE_DIR/keys/$KEY_NAME"
 
+WORK_DIR="$(mktemp -d)"
 KEY_DIR="$(mktemp -d)"
-trap 'rm -rf "$KEY_DIR"' EXIT
+trap 'rm -rf "$WORK_DIR" "$KEY_DIR"' EXIT
 printf '%s' "$APK_SIGN_PRIVATE_KEY_B64" | base64 -d > "$KEY_DIR/feed.rsa"
 chmod 600 "$KEY_DIR/feed.rsa"
+
+SDK_ARCHIVE="$WORK_DIR/sdk.tar.zst"
+curl -fL --retry 3 -o "$SDK_ARCHIVE" "$SDK_URL"
+tar --zstd -xf "$SDK_ARCHIVE" -C "$WORK_DIR"
+
+SDK_DIR="$(find "$WORK_DIR" -maxdepth 1 -type d -name "$SDK_DIR_GLOB" | head -n 1)"
+[[ -n "$SDK_DIR" ]] || { echo "SDK dir not found by glob: $SDK_DIR_GLOB" >&2; exit 1; }
+
+APK_BIN="$SDK_DIR/staging_dir/host/bin/apk"
+[[ -x "$APK_BIN" ]] || { echo "SDK apk tool not found: $APK_BIN" >&2; exit 1; }
 
 for arch_dir in "$ARTIFACTS_DIR"/*; do
   [[ -d "$arch_dir" ]] || continue
@@ -69,23 +90,19 @@ for arch_dir in "$ARTIFACTS_DIR"/*; do
   fi
 done
 
-docker run --rm \
-  -v "$SITE_DIR:/site" \
-  -v "$KEY_DIR:/keys" \
-  alpine:3.20 sh -euc '
-    apk add --no-cache apk-tools abuild >/dev/null
-    for d in /site/snapshots/packages/*/custom; do
-      [ -d "$d" ] || continue
-      cd "$d"
-      ls *.apk >/dev/null 2>&1 || continue
-      rm -f packages.adb
-      apk index \
-        --allow-untrusted \
-        --output packages.adb \
-        ./*.apk
-      abuild-sign -k /keys/feed.rsa packages.adb
-    done
-  '
+for d in "$SITE_DIR"/snapshots/packages/*/custom; do
+  [[ -d "$d" ]] || continue
+  cd "$d"
+  ls *.apk >/dev/null 2>&1 || continue
+  rm -f packages.adb
+  "$APK_BIN" mkndx \
+    --root /tmp \
+    --keys-dir "$KEY_DIR" \
+    --allow-untrusted \
+    --sign "$KEY_DIR/feed.rsa" \
+    --output packages.adb \
+    ./*.apk
+done
 
 find "$SITE_DIR/snapshots/packages" -type f \
   \( -name '*.apk' -o -name 'packages.adb' \) \

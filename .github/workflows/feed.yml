@@ -123,11 +123,17 @@ jobs:
           APK_SIGN_PRIVATE_KEY_B64: ${{ secrets.APK_SIGN_PRIVATE_KEY_B64 }}
           APK_SIGN_PUBLIC_KEY: ${{ secrets.APK_SIGN_PUBLIC_KEY }}
         run: |
+          sdk_url="$(jq -r '.targets[] | select(.arch=="x86_64") | .sdk_url' .ci/targets.json)"
+          sdk_dir_glob="$(jq -r '.targets[] | select(.arch=="x86_64") | .sdk_dir_glob' .ci/targets.json)"
+          [ -n "$sdk_url" ] && [ "$sdk_url" != "null" ] || { echo "sdk_url not found in .ci/targets.json" >&2; exit 1; }
+          [ -n "$sdk_dir_glob" ] && [ "$sdk_dir_glob" != "null" ] || { echo "sdk_dir_glob not found in .ci/targets.json" >&2; exit 1; }
           chmod +x scripts/publish_feed.sh
           scripts/publish_feed.sh \
             --artifacts-dir "publish/by-arch" \
             --site-dir "publish/site" \
-            --key-name "custom-feed.pub"
+            --key-name "custom-feed.pub" \
+            --sdk-url "$sdk_url" \
+            --sdk-dir-glob "$sdk_dir_glob"
 
       - name: Publish to gh-pages
         uses: peaceiris/actions-gh-pages@v4
