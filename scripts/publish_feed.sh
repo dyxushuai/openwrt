@@ -41,7 +41,9 @@ done
 [[ -n "${APK_SIGN_PUBLIC_KEY:-}" ]] || { echo "Missing APK_SIGN_PUBLIC_KEY" >&2; exit 1; }
 command -v docker >/dev/null || { echo "Missing command: docker" >&2; exit 1; }
 
+ARTIFACTS_DIR="$(cd "$ARTIFACTS_DIR" && pwd -P)"
 mkdir -p "$SITE_DIR"
+SITE_DIR="$(cd "$SITE_DIR" && pwd -P)"
 mkdir -p "$SITE_DIR/keys"
 mkdir -p "$SITE_DIR/checksums"
 
