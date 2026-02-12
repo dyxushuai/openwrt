@@ -1,0 +1,138 @@
+name: Build and Publish OpenWrt Feed (APK)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: feed-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      feed: ${{ steps.filter.outputs.feed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            feed:
+              - '.github/workflows/feed.yml'
+              - '.ci/**'
+              - 'scripts/**'
+              - 'packages/**'
+              - 'luci/**'
+              - 'feeds/**'
+              - 'keys/**'
+              - 'Makefile'
+              - 'README.md'
+
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.read.outputs.targets }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read targets matrix
+        id: read
+        run: |
+          echo "targets=$(jq -c '.targets' .ci/targets.json)" >> "$GITHUB_OUTPUT"
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [changes, matrix]
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.feed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.matrix.outputs.targets) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gawk make curl zstd tar sed awk grep findutils \
+            build-essential clang flex bison g++ gettext git libncurses-dev \
+            libssl-dev python3 python3-distutils python3-setuptools rsync \
+            swig unzip zlib1g-dev file wget patch perl ccache pkg-config \
+            libelf-dev liblz4-tool lz4 xsltproc qemu-utils jq
+
+      - name: Build whitelist packages
+        run: |
+          mkdir -p artifacts/${{ matrix.target.arch }}
+          chmod +x scripts/build_sdk_packages.sh
+          scripts/build_sdk_packages.sh \
+            --sdk-url "${{ matrix.target.sdk_url }}" \
+            --sdk-dir-glob "${{ matrix.target.sdk_dir_glob }}" \
+            --repo-dir "$PWD" \
+            --whitelist ".ci/package-whitelist.txt" \
+            --output-dir "artifacts/${{ matrix.target.arch }}"
+
+      - name: Upload per-arch APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ matrix.target.arch }}
+          path: artifacts/${{ matrix.target.arch }}
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    if: success()
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: publish/artifacts
+
+      - name: Normalize artifact directory
+        run: |
+          mkdir -p publish/by-arch
+          for d in publish/artifacts/apk-*; do
+            [ -d "$d" ] || continue
+            arch="${d##*/apk-}"
+            mkdir -p "publish/by-arch/$arch"
+            cp -f "$d"/*.apk "publish/by-arch/$arch/" || true
+          done
+          find publish -maxdepth 4 -type f | sort
+
+      - name: Build feed indexes and signatures
+        env:
+          APK_SIGN_PRIVATE_KEY_B64: ${{ secrets.APK_SIGN_PRIVATE_KEY_B64 }}
+          APK_SIGN_PUBLIC_KEY: ${{ secrets.APK_SIGN_PUBLIC_KEY }}
+        run: |
+          chmod +x scripts/publish_feed.sh
+          scripts/publish_feed.sh \
+            --artifacts-dir "publish/by-arch" \
+            --site-dir "publish/site" \
+            --key-name "custom-feed.pub"
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: publish/site
+          keep_files: true

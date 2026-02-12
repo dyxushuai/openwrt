@@ -1,0 +1,16 @@
+{
+  "targets": [
+    {
+      "arch": "aarch64_cortex-a53",
+      "target_path": "mediatek/filogic",
+      "sdk_url": "https://downloads.openwrt.org/snapshots/targets/mediatek/filogic/openwrt-sdk-mediatek-filogic_gcc-14.3.0_musl.Linux-x86_64.tar.zst",
+      "sdk_dir_glob": "openwrt-sdk-mediatek-filogic_*"
+    },
+    {
+      "arch": "x86_64",
+      "target_path": "x86/64",
+      "sdk_url": "https://downloads.openwrt.org/snapshots/targets/x86/64/openwrt-sdk-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst",
+      "sdk_dir_glob": "openwrt-sdk-x86-64_*"
+    }
+  ]
+}
