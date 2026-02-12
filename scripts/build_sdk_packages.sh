@@ -102,11 +102,16 @@ make defconfig
 
 for pkg in "${PACKAGES[@]}"; do
   echo "Compiling package: $pkg"
-  if ! make "package/${pkg}/compile" -j"$(nproc)" V=s; then
-    feed_pkg_dir="$(find package/feeds -mindepth 2 -maxdepth 2 -type d -name "$pkg" | head -n 1 || true)"
-    [[ -n "$feed_pkg_dir" ]] || { echo "Unable to resolve build target for package: $pkg" >&2; exit 1; }
-    make "${feed_pkg_dir}/compile" -j"$(nproc)" V=s
+  compile_target=""
+  feed_pkg_dir="$(find package/feeds \( -type d -o -type l \) -name "$pkg" | head -n 1 || true)"
+
+  if [[ -n "$feed_pkg_dir" ]]; then
+    compile_target="${feed_pkg_dir}/compile"
+  else
+    compile_target="package/${pkg}/compile"
   fi
+
+  make "$compile_target" -j"$(nproc)" V=s
 done
 
 for pkg in "${PACKAGES[@]}"; do
