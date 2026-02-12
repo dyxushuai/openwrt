@@ -68,6 +68,8 @@ pushd "$SDK_DIR" >/dev/null
 cp -f feeds.conf.default feeds.conf
 sed -i.bak 's#https://git.openwrt.org/feed/packages.git#https://github.com/openwrt/packages.git#g' feeds.conf
 sed -i.bak 's#https://git.openwrt.org/project/luci.git#https://github.com/openwrt/luci.git#g' feeds.conf
+sed -i.bak 's#https://git.openwrt.org/feed/routing.git#https://github.com/openwrt/routing.git#g' feeds.conf
+sed -i.bak 's#https://git.openwrt.org/feed/telephony.git#https://github.com/openwrt/telephony.git#g' feeds.conf
 rm -f feeds.conf.bak
 echo "src-git coolsnowwolf_packages $COOLSNOWWOLF_PACKAGES_URL" >> feeds.conf
 echo "src-git coolsnowwolf_luci $COOLSNOWWOLF_LUCI_URL" >> feeds.conf
