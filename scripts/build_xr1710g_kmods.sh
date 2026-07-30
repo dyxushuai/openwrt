@@ -220,7 +220,7 @@ module_vermagic="$(<"${module_vermagic_files[0]}")"
 
 apk_bin="$source_dir/staging_dir/host/bin/apk"
 [[ -x "$apk_bin" ]] || { echo "Host APK tool not found: $apk_bin" >&2; exit 1; }
-expected_kernel_dependency="kernel-${kernel_release}~${baseline_vermagic}-r${kernel_package_release}"
+expected_kernel_dependency="kernel=${kernel_release}~${baseline_vermagic}-r${kernel_package_release}"
 
 for package in "${packages[@]}"; do
   mapfile -t artifacts < <(
