@@ -121,6 +121,12 @@ for pkg in "${PACKAGES[@]}"; do
   fi
 done
 
+for pkg in "${ARTIFACT_PACKAGES[@]}"; do
+  if ! grep -q "^CONFIG_PACKAGE_${pkg}=m$" .config; then
+    echo "CONFIG_PACKAGE_${pkg}=m" >> .config
+  fi
+done
+
 make defconfig
 
 for pkg in "${PACKAGES[@]}"; do
