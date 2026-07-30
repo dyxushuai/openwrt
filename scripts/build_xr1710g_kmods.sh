@@ -224,7 +224,8 @@ expected_kernel_dependency="kernel=${kernel_release}~${baseline_vermagic}-r${ker
 
 for package in "${packages[@]}"; do
   mapfile -t artifacts < <(
-    find "bin/targets/airoha/an7581/packages" -maxdepth 1 -type f -name "${package}-*.apk"
+    find "bin/targets/airoha/an7581/packages" -maxdepth 1 -type f \
+      -name "${package}-${kernel_release}-r${kernel_package_release}.apk"
   )
   [[ ${#artifacts[@]} -eq 1 ]] || {
     echo "Expected one APK for $package, found ${#artifacts[@]}." >&2
