@@ -151,7 +151,10 @@ done
 jobs="${JOBS:-2}"
 [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { echo "Invalid JOBS value: $jobs" >&2; exit 1; }
 make -j"$jobs" download
-make -j"$jobs" tools/install
+if ! make -j"$jobs" tools/install; then
+  echo "Parallel host-tools build failed; retrying serially with verbose output." >&2
+  make -j1 V=s tools/install
+fi
 make -j"$jobs" toolchain/install
 make -j"$jobs" target/linux/compile
 
