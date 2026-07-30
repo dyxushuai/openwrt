@@ -10,6 +10,7 @@ Usage:
     --sdk-dir-glob <glob> \
     --repo-dir <repo_dir> \
     --whitelist <file> \
+    --artifact-whitelist <file> \
     --output-dir <dir>
 
 Description:
@@ -23,6 +24,7 @@ SDK_SHA256=""
 SDK_DIR_GLOB=""
 REPO_DIR=""
 WHITELIST=""
+ARTIFACT_WHITELIST=""
 OUTPUT_DIR=""
 COOLSNOWWOLF_LUCI_URL="${COOLSNOWWOLF_LUCI_URL:-https://github.com/coolsnowwolf/luci.git^3d589a69a52c6e84275dfdd8542f0cc39b2453f6}"
 
@@ -33,6 +35,7 @@ while [[ $# -gt 0 ]]; do
     --sdk-dir-glob) SDK_DIR_GLOB="${2:-}"; shift 2 ;;
     --repo-dir) REPO_DIR="${2:-}"; shift 2 ;;
     --whitelist) WHITELIST="${2:-}"; shift 2 ;;
+    --artifact-whitelist) ARTIFACT_WHITELIST="${2:-}"; shift 2 ;;
     --output-dir) OUTPUT_DIR="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -44,8 +47,13 @@ done
 [[ -n "$SDK_DIR_GLOB" ]] || { echo "Missing --sdk-dir-glob" >&2; exit 1; }
 [[ -n "$REPO_DIR" ]] || { echo "Missing --repo-dir" >&2; exit 1; }
 [[ -n "$WHITELIST" ]] || { echo "Missing --whitelist" >&2; exit 1; }
+[[ -n "$ARTIFACT_WHITELIST" ]] || { echo "Missing --artifact-whitelist" >&2; exit 1; }
 [[ -n "$OUTPUT_DIR" ]] || { echo "Missing --output-dir" >&2; exit 1; }
 [[ -f "$WHITELIST" ]] || { echo "Whitelist not found: $WHITELIST" >&2; exit 1; }
+[[ -f "$ARTIFACT_WHITELIST" ]] || {
+  echo "Artifact whitelist not found: $ARTIFACT_WHITELIST" >&2
+  exit 1
+}
 
 for cmd in curl tar sed awk make grep sha256sum xargs; do
   command -v "$cmd" >/dev/null || { echo "Missing command: $cmd" >&2; exit 1; }
@@ -58,6 +66,13 @@ trap 'rm -rf "$WORKDIR"' EXIT
 
 mapfile -t PACKAGES < <(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$WHITELIST" | xargs -n1)
 [[ ${#PACKAGES[@]} -gt 0 ]] || { echo "Whitelist is empty: $WHITELIST" >&2; exit 1; }
+mapfile -t ARTIFACT_PACKAGES < <(
+  sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$ARTIFACT_WHITELIST" | xargs -n1
+)
+[[ ${#ARTIFACT_PACKAGES[@]} -gt 0 ]] || {
+  echo "Artifact whitelist is empty: $ARTIFACT_WHITELIST" >&2
+  exit 1
+}
 
 SDK_ARCHIVE="$WORKDIR/sdk.tar.zst"
 curl -fL --retry 3 -o "$SDK_ARCHIVE" "$SDK_URL"
@@ -122,8 +137,13 @@ for pkg in "${PACKAGES[@]}"; do
   make "$compile_target" -j"$(nproc)" V=s
 done
 
-for pkg in "${PACKAGES[@]}"; do
-  find bin/packages -type f -name "${pkg}-*.apk" -exec cp -f {} "$OUTPUT_DIR"/ \;
+for pkg in "${ARTIFACT_PACKAGES[@]}"; do
+  mapfile -t artifacts < <(find bin/packages -type f -name "${pkg}-*.apk")
+  if [[ ${#artifacts[@]} -eq 0 ]]; then
+    echo "Expected APK artifact was not generated: $pkg" >&2
+    exit 1
+  fi
+  cp -f "${artifacts[@]}" "$OUTPUT_DIR"/
 done
 
 popd >/dev/null

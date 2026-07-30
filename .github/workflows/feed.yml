@@ -106,6 +106,7 @@ jobs:
             --sdk-dir-glob "${{ matrix.target.sdk_dir_glob }}" \
             --repo-dir "$PWD" \
             --whitelist ".ci/package-whitelist.txt" \
+            --artifact-whitelist ".ci/artifact-whitelist.txt" \
             --output-dir "artifacts/${{ matrix.target.id }}"
 
       - name: Upload per-target APK artifacts

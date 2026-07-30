@@ -23,7 +23,13 @@ Edit `.ci/package-whitelist.txt` to control what gets compiled and published.
 Current default:
 
 - `luci-app-mwan3helper`
+- `luci-i18n-mwan3helper-zh-cn`
 - `pdnsd-alt`
+
+`.ci/package-whitelist.txt` controls source packages to compile.
+`.ci/artifact-whitelist.txt` controls the APK outputs that must be present
+before a build can be published. The Simplified Chinese translation is
+generated while compiling `luci-app-mwan3helper`.
 
 ## Required GitHub Secrets
 
@@ -89,7 +95,7 @@ https://<owner>.github.io/<repo>/snapshots/packages/aarch64_cortex-a53/custom/pa
 EOF
 
 apk update
-apk add luci-app-mwan3helper pdnsd-alt
+apk add luci-app-mwan3helper luci-i18n-mwan3helper-zh-cn pdnsd-alt
 ```
 
 For x86_64 routers, replace `aarch64_cortex-a53` with `x86_64`.
@@ -105,7 +111,7 @@ https://<owner>.github.io/<repo>/snapshots/immortalwrt/targets/airoha/an7581/pac
 EOF
 
 apk update
-apk add luci-app-mwan3helper pdnsd-alt
+apk add luci-app-mwan3helper luci-i18n-mwan3helper-zh-cn pdnsd-alt
 ```
 
 The Airoha feed is separate from the OpenWrt feeds so packages built with
