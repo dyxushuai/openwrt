@@ -150,7 +150,7 @@ done
 
 jobs="${JOBS:-2}"
 [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { echo "Invalid JOBS value: $jobs" >&2; exit 1; }
-make -j"$jobs" V=s tools/install
+make -j1 V=s tools/install
 make -j"$jobs" V=s toolchain/install
 make -j"$jobs" target/linux/prepare
 
