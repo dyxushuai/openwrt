@@ -1,6 +1,10 @@
-7a6e04515add7674dd6d6157d92efff6de8bbc9fd4aeeaaecc76617b8cfa22f1  /home/runner/work/openwrt/openwrt/publish/site/snapshots/packages/aarch64_cortex-a53/custom/luci-app-mwan3helper-1-r3.apk
-6a331a53b05b5ca72ab37d6e55e46720ad56321581906985b57a4d6ac7b76687  /home/runner/work/openwrt/openwrt/publish/site/snapshots/packages/aarch64_cortex-a53/custom/packages.adb
-4d8c5f241fe1ce67e0c628b91aaa602b1edc1c30f73abf5c616ba5105a5768ff  /home/runner/work/openwrt/openwrt/publish/site/snapshots/packages/aarch64_cortex-a53/custom/pdnsd-alt-1.2.9b-r4.apk
-7a6e04515add7674dd6d6157d92efff6de8bbc9fd4aeeaaecc76617b8cfa22f1  /home/runner/work/openwrt/openwrt/publish/site/snapshots/packages/x86_64/custom/luci-app-mwan3helper-1-r3.apk
-21d4e75a928268161d688e9098de8c280dd085a35e1643b5e0353a0eea609954  /home/runner/work/openwrt/openwrt/publish/site/snapshots/packages/x86_64/custom/packages.adb
-e8509e9814413bf845d430ceac0e0fe0ddea25a48e73b28735a043d6947c0c04  /home/runner/work/openwrt/openwrt/publish/site/snapshots/packages/x86_64/custom/pdnsd-alt-1.2.9b-r4.apk
+4131c661889a61fa923481845203499e4e32806c46a8e00c8980bbc1f847d4f8  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/custom/luci-app-mwan3helper-1-r3.apk
+592c9bde9293c5421c05059ffd8d4f4b81760e70d3ec16db1fd63b412736f97f  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/custom/luci-i18n-mwan3helper-zh-cn-24.171.49014~3d589a6.apk
+469d88e6ffdf64a3a525081fcbaca953996512ad82e91e9552efb683e6cc42f6  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/custom/packages.adb
+5ecba89b527249c218f3a953ee23257bad083fee40fbdc49131ff4c5d5d44cf3  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/custom/pdnsd-alt-1.2.9b-r4.apk
+7a6e04515add7674dd6d6157d92efff6de8bbc9fd4aeeaaecc76617b8cfa22f1  snapshots/packages/aarch64_cortex-a53/custom/luci-app-mwan3helper-1-r3.apk
+6a331a53b05b5ca72ab37d6e55e46720ad56321581906985b57a4d6ac7b76687  snapshots/packages/aarch64_cortex-a53/custom/packages.adb
+4d8c5f241fe1ce67e0c628b91aaa602b1edc1c30f73abf5c616ba5105a5768ff  snapshots/packages/aarch64_cortex-a53/custom/pdnsd-alt-1.2.9b-r4.apk
+7a6e04515add7674dd6d6157d92efff6de8bbc9fd4aeeaaecc76617b8cfa22f1  snapshots/packages/x86_64/custom/luci-app-mwan3helper-1-r3.apk
+21d4e75a928268161d688e9098de8c280dd085a35e1643b5e0353a0eea609954  snapshots/packages/x86_64/custom/packages.adb
+e8509e9814413bf845d430ceac0e0fe0ddea25a48e73b28735a043d6947c0c04  snapshots/packages/x86_64/custom/pdnsd-alt-1.2.9b-r4.apk
