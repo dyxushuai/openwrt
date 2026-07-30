@@ -99,6 +99,15 @@ rm -f feeds.conf.bak
 ./scripts/feeds update -a
 touch .config
 
+# The pinned legacy LuCI package renders PKG_RELEASE=3 as version "1-3".
+# APK requires an explicit revision marker, so render it as "1-r3".
+HELPER_MAKEFILE="feeds/coolsnowwolf_luci/applications/luci-app-mwan3helper/Makefile"
+grep -qx 'PKG_RELEASE:=3' "$HELPER_MAKEFILE" || {
+  echo "Unexpected mwan3helper release metadata in: $HELPER_MAKEFILE" >&2
+  exit 1
+}
+sed -i 's/^PKG_RELEASE:=3$/PKG_RELEASE:=r3/' "$HELPER_MAKEFILE"
+
 install_feed_package() {
   local pkg="$1"
   local feed=""

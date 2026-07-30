@@ -12,6 +12,7 @@ APK feeds with GitHub Actions.
 - Uses package sources from:
   - a pinned pre-removal `coolsnowwolf/luci` revision for `luci-app-mwan3helper`
   - this repository (optional local feed via `src-link`)
+- Normalizes the legacy helper release from `1-3` to APK-compatible `1-r3`.
 - Publishes signed feed content to the same repository `gh-pages` branch.
 - Verifies each SDK archive against the SHA-256 digest recorded in
   `.ci/targets.json`.
