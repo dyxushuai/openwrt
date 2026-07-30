@@ -22,6 +22,18 @@ on:
         required: true
         default: false
         type: boolean
+  workflow_call:
+    inputs:
+      release:
+        description: Exact XR1710G firmware release
+        required: false
+        default: 20260719-5747ad3
+        type: string
+      publish:
+        description: Publish the validated packages to gh-pages
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -35,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     env:
-      RELEASE: ${{ github.event.inputs.release || '20260719-5747ad3' }}
+      RELEASE: ${{ inputs.release || '20260719-5747ad3' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

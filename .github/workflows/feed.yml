@@ -16,6 +16,7 @@ on:
           - openwrt-filogic
           - openwrt-x86-64
           - immortalwrt-airoha-an7581
+          - immortalwrt-xr1710g-20260719-kmods
 
 permissions:
   contents: read
@@ -51,6 +52,9 @@ jobs:
 
   matrix:
     runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      inputs.target != 'immortalwrt-xr1710g-20260719-kmods'
     outputs:
       targets: ${{ steps.read.outputs.targets }}
     steps:
@@ -73,6 +77,16 @@ jobs:
             exit 1
           }
           echo "targets=$targets" >> "$GITHUB_OUTPUT"
+
+  xr1710g-kmods:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.target == 'immortalwrt-xr1710g-20260719-kmods'
+    uses: ./.github/workflows/xr1710g-kmods.yml
+    with:
+      release: 20260719-5747ad3
+      publish: false
+    secrets: inherit
 
   build:
     runs-on: ubuntu-latest
