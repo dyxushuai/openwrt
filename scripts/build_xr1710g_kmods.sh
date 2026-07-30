@@ -42,7 +42,7 @@ done
 [[ -n "$WORK_DIR" ]] || { echo "Missing --work-dir" >&2; exit 1; }
 [[ -n "$OUTPUT_DIR" ]] || { echo "Missing --output-dir" >&2; exit 1; }
 
-for cmd in curl find git grep jq make nproc sed sha256sum xargs; do
+for cmd in curl find git grep jq make sed sha256sum xargs; do
   command -v "$cmd" >/dev/null || { echo "Missing command: $cmd" >&2; exit 1; }
 done
 
@@ -78,6 +78,7 @@ source_ref="$(json_value '.source_ref')"
 kernel_release="$(json_value '.kernel_release')"
 kernel_package_release="$(json_value '.kernel_package_release')"
 kernel_vermagic="$(json_value '.kernel_vermagic')"
+config_seed_sha256="$(json_value '.config_seed_sha256')"
 arch="$(json_value '.arch')"
 config_url="$(json_value '.config_url')"
 config_sha256="$(json_value '.config_sha256')"
@@ -87,6 +88,10 @@ feeds_sha256="$(json_value '.feeds_sha256')"
 [[ "$source_ref" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid source ref: $source_ref" >&2; exit 1; }
 [[ "$kernel_vermagic" =~ ^[0-9a-f]{32}$ ]] || {
   echo "Invalid release kernel ABI hash: $kernel_vermagic" >&2
+  exit 1
+}
+[[ "$config_seed_sha256" =~ ^[0-9a-f]{64}$ ]] || {
+  echo "Invalid config.seed SHA-256: $config_seed_sha256" >&2
   exit 1
 }
 [[ "$config_sha256" =~ ^[0-9a-f]{64}$ ]] || {
@@ -120,13 +125,14 @@ git -C "$source_dir" checkout --detach "$source_ref"
   echo "Source checkout does not match configured ref." >&2
   exit 1
 }
+printf '%s  %s\n' "$config_seed_sha256" "$source_dir/config.seed" | sha256sum -c -
 
 curl -fL --retry 3 -o "$WORK_DIR/config.buildinfo" "$config_url"
 printf '%s  %s\n' "$config_sha256" "$WORK_DIR/config.buildinfo" | sha256sum -c -
 curl -fL --retry 3 -o "$WORK_DIR/feeds.buildinfo" "$feeds_url"
 printf '%s  %s\n' "$feeds_sha256" "$WORK_DIR/feeds.buildinfo" | sha256sum -c -
 
-cp -f "$WORK_DIR/config.buildinfo" "$source_dir/.config"
+cp -f "$source_dir/config.seed" "$source_dir/.config"
 cp -f "$WORK_DIR/feeds.buildinfo" "$source_dir/feeds.conf"
 
 pushd "$source_dir" >/dev/null
@@ -142,9 +148,10 @@ for package in "${packages[@]}"; do
   fi
 done
 
-jobs="$(nproc)"
-make -j"$jobs" tools/install
-make -j"$jobs" toolchain/install
+jobs="${JOBS:-2}"
+[[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { echo "Invalid JOBS value: $jobs" >&2; exit 1; }
+make -j"$jobs" V=s tools/install
+make -j"$jobs" V=s toolchain/install
 make -j"$jobs" target/linux/prepare
 
 mapfile -t baseline_vermagic_files < <(

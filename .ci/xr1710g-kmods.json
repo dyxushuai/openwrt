@@ -11,6 +11,7 @@
       "kernel_release": "6.18.38",
       "kernel_package_release": "1",
       "kernel_vermagic": "84454825e3136c38c92f481b32e76c13",
+      "config_seed_sha256": "c55bab6eb26b9548d9ba5e74272763d7dc160b74a63a4b82026f7ba644ae1e1f",
       "config_url": "https://github.com/naoki66/ImmortalWrt-for-Gemtek-XR1710G/releases/download/20260719-5747ad3/config.buildinfo",
       "config_sha256": "4d03f467f02ad429c83431493b5cbed851b71d09de8233b6f03655e32e94c72c",
       "feeds_url": "https://github.com/naoki66/ImmortalWrt-for-Gemtek-XR1710G/releases/download/20260719-5747ad3/feeds.buildinfo",
