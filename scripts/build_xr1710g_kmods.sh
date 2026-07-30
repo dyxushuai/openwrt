@@ -36,8 +36,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+target_release="$RELEASE"
+unset RELEASE VERSION
+
 [[ -f "$RELEASE_FILE" ]] || { echo "Release file not found: $RELEASE_FILE" >&2; exit 1; }
-[[ -n "$RELEASE" ]] || { echo "Missing --release" >&2; exit 1; }
+[[ -n "$target_release" ]] || { echo "Missing --release" >&2; exit 1; }
 [[ -f "$WHITELIST" ]] || { echo "Whitelist not found: $WHITELIST" >&2; exit 1; }
 [[ -n "$WORK_DIR" ]] || { echo "Missing --work-dir" >&2; exit 1; }
 [[ -n "$OUTPUT_DIR" ]] || { echo "Missing --output-dir" >&2; exit 1; }
@@ -62,11 +65,14 @@ if find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 | grep -q .; then
 fi
 
 release_json="$(
-  jq -ce --arg release "$RELEASE" \
+  jq -ce --arg release "$target_release" \
     '.releases[] | select(.release == $release)' \
     "$RELEASE_FILE"
 )"
-[[ -n "$release_json" ]] || { echo "Release is not configured: $RELEASE" >&2; exit 1; }
+[[ -n "$release_json" ]] || {
+  echo "Release is not configured: $target_release" >&2
+  exit 1
+}
 
 json_value() {
   jq -er "$1" <<<"$release_json"
@@ -249,7 +255,7 @@ done
 
 {
   printf 'target_id=%s\n' "$target_id"
-  printf 'release=%s\n' "$RELEASE"
+  printf 'release=%s\n' "$target_release"
   printf 'source_ref=%s\n' "$source_ref"
   printf 'kernel_release=%s\n' "$kernel_release"
   printf 'kernel_package_release=%s\n' "$kernel_package_release"
