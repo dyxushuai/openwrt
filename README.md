@@ -117,3 +117,42 @@ apk add luci-app-mwan3helper luci-i18n-mwan3helper-zh-cn pdnsd-alt
 
 The Airoha feed is separate from the OpenWrt feeds so packages built with
 different SDK families never overwrite each other.
+
+## XR1710G release-specific kernel packages
+
+The XR1710G kernel-module pipeline builds only the missing kernel packages for
+an exact firmware release. It does not build or publish a replacement firmware
+image, and it does not include router runtime configuration.
+
+Current release scope:
+
+- Firmware release: `20260719-5747ad3`
+- Source commit: `5747ad32a4b3ef2484d0b01a5af91ea140b29630`
+- Kernel release: `6.18.38`
+- Installed kernel package:
+  `kernel-6.18.38~84454825e3136c38c92f481b32e76c13-r1`
+- Packages:
+  - `kmod-ip6tables`
+  - `kmod-ipt-conntrack-extra`
+  - `kmod-ipt-ipopt`
+  - `kmod-ipt-ipset`
+  - `kmod-nft-compat`
+
+The build first reproduces the original release kernel ABI from the published
+`config.buildinfo` and pinned `feeds.buildinfo`. It then enables the five
+modules and validates that every APK depends on the original release's exact
+kernel package. A mismatch fails the build.
+
+Pull requests run the build and validation only. Publishing is a separate
+manual action and requires `publish=true`.
+
+Published path:
+
+```text
+snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/xr1710g/20260719-5747ad3
+```
+
+Do not add this repository to a router running another release. Before
+installation, compare the router's installed `kernel` package with
+`expected_kernel_dependency` in the workflow artifact's `build-report.txt`.
+Each future firmware release needs its own release entry and feed directory.

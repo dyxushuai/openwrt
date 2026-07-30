@@ -1,0 +1,5 @@
+kmod-ip6tables
+kmod-ipt-conntrack-extra
+kmod-ipt-ipopt
+kmod-ipt-ipset
+kmod-nft-compat

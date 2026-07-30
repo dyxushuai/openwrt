@@ -8,7 +8,8 @@ Usage:
     --artifacts-dir <dir> \
     --site-dir <dir> \
     --targets-file <file> \
-    --key-name <name.pub>
+    --key-name <name.pub> \
+    [--apk-bin <path>]
 
 Environment:
   APK_SIGN_PRIVATE_KEY_B64  Base64-encoded private key for index signing
@@ -16,7 +17,8 @@ Environment:
 
 Description:
   Assemble per-target APK artifacts into configured feed paths, generate
-  signed packages.adb indexes, and produce checksums.
+  signed packages.adb indexes, and produce checksums. When --apk-bin is
+  omitted, each target must provide SDK download metadata.
 EOF
 }
 
@@ -24,6 +26,7 @@ ARTIFACTS_DIR=""
 SITE_DIR=""
 TARGETS_FILE=""
 KEY_NAME=""
+APK_BIN=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -31,6 +34,7 @@ while [[ $# -gt 0 ]]; do
     --site-dir) SITE_DIR="${2:-}"; shift 2 ;;
     --targets-file) TARGETS_FILE="${2:-}"; shift 2 ;;
     --key-name) KEY_NAME="${2:-}"; shift 2 ;;
+    --apk-bin) APK_BIN="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -42,6 +46,10 @@ done
 [[ -n "$KEY_NAME" ]] || { echo "Missing --key-name" >&2; exit 1; }
 [[ -d "$ARTIFACTS_DIR" ]] || { echo "Artifacts dir not found: $ARTIFACTS_DIR" >&2; exit 1; }
 [[ -f "$TARGETS_FILE" ]] || { echo "Targets file not found: $TARGETS_FILE" >&2; exit 1; }
+if [[ -n "$APK_BIN" ]]; then
+  [[ -x "$APK_BIN" ]] || { echo "APK tool is not executable: $APK_BIN" >&2; exit 1; }
+  APK_BIN="$(cd "$(dirname "$APK_BIN")" && pwd -P)/$(basename "$APK_BIN")"
+fi
 [[ -n "${APK_SIGN_PRIVATE_KEY_B64:-}" ]] || { echo "Missing APK_SIGN_PRIVATE_KEY_B64" >&2; exit 1; }
 [[ -n "${APK_SIGN_PUBLIC_KEY:-}" ]] || { echo "Missing APK_SIGN_PUBLIC_KEY" >&2; exit 1; }
 for cmd in curl tar find jq sha256sum; do
@@ -74,12 +82,17 @@ while IFS=$'\t' read -r target_id feed_path sdk_url sdk_sha256 sdk_dir_glob; do
     echo "Invalid feed path for target $target_id: $feed_path" >&2
     exit 1
   }
-  [[ -n "$sdk_url" ]] || { echo "Missing SDK URL for target $target_id" >&2; exit 1; }
-  [[ "$sdk_sha256" =~ ^[0-9a-f]{64}$ ]] || {
-    echo "Invalid SDK SHA-256 for target $target_id" >&2
-    exit 1
-  }
-  [[ -n "$sdk_dir_glob" ]] || { echo "Missing SDK directory glob for target $target_id" >&2; exit 1; }
+  if [[ -z "$APK_BIN" ]]; then
+    [[ -n "$sdk_url" ]] || { echo "Missing SDK URL for target $target_id" >&2; exit 1; }
+    [[ "$sdk_sha256" =~ ^[0-9a-f]{64}$ ]] || {
+      echo "Invalid SDK SHA-256 for target $target_id" >&2
+      exit 1
+    }
+    [[ -n "$sdk_dir_glob" ]] || {
+      echo "Missing SDK directory glob for target $target_id" >&2
+      exit 1
+    }
+  fi
 
   target_dir="$ARTIFACTS_DIR/$target_id"
   [[ -d "$target_dir" ]] || {
@@ -98,19 +111,22 @@ while IFS=$'\t' read -r target_id feed_path sdk_url sdk_sha256 sdk_dir_glob; do
     exit 1
   fi
 
-  target_work_dir="$WORK_DIR/$target_id"
-  mkdir -p "$target_work_dir"
-  sdk_archive="$target_work_dir/sdk.tar.zst"
-  curl -fL --retry 3 -o "$sdk_archive" "$sdk_url"
-  printf '%s  %s\n' "$sdk_sha256" "$sdk_archive" | sha256sum -c -
-  tar --zstd -xf "$sdk_archive" -C "$target_work_dir"
+  apk_bin="$APK_BIN"
+  if [[ -z "$apk_bin" ]]; then
+    target_work_dir="$WORK_DIR/$target_id"
+    mkdir -p "$target_work_dir"
+    sdk_archive="$target_work_dir/sdk.tar.zst"
+    curl -fL --retry 3 -o "$sdk_archive" "$sdk_url"
+    printf '%s  %s\n' "$sdk_sha256" "$sdk_archive" | sha256sum -c -
+    tar --zstd -xf "$sdk_archive" -C "$target_work_dir"
 
-  sdk_dir="$(find "$target_work_dir" -maxdepth 1 -type d -name "$sdk_dir_glob" | head -n 1)"
-  [[ -n "$sdk_dir" ]] || {
-    echo "SDK directory not found for target $target_id by glob: $sdk_dir_glob" >&2
-    exit 1
-  }
-  apk_bin="$sdk_dir/staging_dir/host/bin/apk"
+    sdk_dir="$(find "$target_work_dir" -maxdepth 1 -type d -name "$sdk_dir_glob" | head -n 1)"
+    [[ -n "$sdk_dir" ]] || {
+      echo "SDK directory not found for target $target_id by glob: $sdk_dir_glob" >&2
+      exit 1
+    }
+    apk_bin="$sdk_dir/staging_dir/host/bin/apk"
+  fi
   [[ -x "$apk_bin" ]] || { echo "SDK apk tool not found for target $target_id: $apk_bin" >&2; exit 1; }
 
   pushd "$dest" >/dev/null
@@ -125,7 +141,11 @@ while IFS=$'\t' read -r target_id feed_path sdk_url sdk_sha256 sdk_dir_glob; do
   popd >/dev/null
 
   ((target_count += 1))
-done < <(jq -r '.targets[] | [.id, .feed_path, .sdk_url, .sdk_sha256, .sdk_dir_glob] | @tsv' "$TARGETS_FILE")
+done < <(
+  jq -r \
+    '.targets[] | [.id, .feed_path, (.sdk_url // ""), (.sdk_sha256 // ""), (.sdk_dir_glob // "")] | @tsv' \
+    "$TARGETS_FILE"
+)
 
 [[ "$target_count" -gt 0 ]] || { echo "No feed targets configured." >&2; exit 1; }
 

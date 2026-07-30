@@ -1,0 +1,157 @@
+name: Build XR1710G Release Kernel Packages
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/xr1710g-kmods.yml'
+      - '.ci/xr1710g-kmods.json'
+      - '.ci/xr1710g-kmod-packages.txt'
+      - 'scripts/build_xr1710g_kmods.sh'
+      - 'scripts/publish_feed.sh'
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Exact XR1710G firmware release
+        required: true
+        default: 20260719-5747ad3
+        type: choice
+        options:
+          - 20260719-5747ad3
+      publish:
+        description: Publish the validated packages to gh-pages
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xr1710g-kmods-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      RELEASE: ${{ github.event.inputs.release || '20260719-5747ad3' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential clang flex bison g++ gawk gettext git \
+            libelf-dev libncurses-dev libssl-dev python3 python3-dev \
+            python3-pyelftools python3-setuptools rsync swig unzip zlib1g-dev \
+            file wget curl patch perl ccache pkg-config liblz4-tool lz4 \
+            xsltproc qemu-utils jq zstd
+
+      - name: Build and validate release-specific kernel packages
+        run: |
+          target_id="$(jq -er --arg release "$RELEASE" \
+            '.releases[] | select(.release == $release) | .id' \
+            .ci/xr1710g-kmods.json)"
+          mkdir -p "artifacts/$target_id"
+          chmod +x scripts/build_xr1710g_kmods.sh
+          scripts/build_xr1710g_kmods.sh \
+            --release-file ".ci/xr1710g-kmods.json" \
+            --release "$RELEASE" \
+            --whitelist ".ci/xr1710g-kmod-packages.txt" \
+            --work-dir "build-xr1710g-kmods/$target_id" \
+            --output-dir "artifacts/$target_id"
+          mkdir -p artifacts/tooling
+          cp -f \
+            "build-xr1710g-kmods/$target_id/source/staging_dir/host/bin/apk" \
+            artifacts/tooling/apk
+
+      - name: Upload validated APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: xr1710g-kmods
+          path: artifacts/immortalwrt-xr1710g-*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload matching APK index tool
+        uses: actions/upload-artifact@v4
+        with:
+          name: xr1710g-apk-tool
+          path: artifacts/tooling/apk
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    permissions:
+      contents: write
+    env:
+      RELEASE: ${{ inputs.release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download validated APK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: xr1710g-kmods
+          path: publish/by-target
+
+      - name: Download matching APK index tool
+        uses: actions/download-artifact@v4
+        with:
+          name: xr1710g-apk-tool
+          path: publish/tools
+
+      - name: Seed site from the published feed
+        run: |
+          mkdir -p publish/site
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null; then
+            git fetch --depth=1 origin gh-pages
+            git archive FETCH_HEAD | tar -x -C publish/site
+          else
+            rc=$?
+            [ "$rc" -eq 2 ] || exit "$rc"
+          fi
+
+      - name: Prepare release feed inputs
+        run: |
+          target_id="$(jq -er --arg release "$RELEASE" \
+            '.releases[] | select(.release == $release) | .id' \
+            .ci/xr1710g-kmods.json)"
+          artifact_dir="$(find publish/by-target -type d -name "$target_id" | head -n 1)"
+          [ -n "$artifact_dir" ] || {
+            echo "Downloaded artifact directory not found: $target_id" >&2
+            exit 1
+          }
+          mkdir -p "publish/artifacts/$target_id"
+          cp -f "$artifact_dir"/*.apk "publish/artifacts/$target_id/"
+          jq --arg release "$RELEASE" \
+            '{targets: [.releases[] | select(.release == $release) | {id, feed_path}]}' \
+            .ci/xr1710g-kmods.json > publish/targets.json
+          chmod +x publish/tools/apk scripts/publish_feed.sh
+
+      - name: Build signed feed index
+        env:
+          APK_SIGN_PRIVATE_KEY_B64: ${{ secrets.APK_SIGN_PRIVATE_KEY_B64 }}
+          APK_SIGN_PUBLIC_KEY: ${{ secrets.APK_SIGN_PUBLIC_KEY }}
+        run: |
+          scripts/publish_feed.sh \
+            --artifacts-dir "publish/artifacts" \
+            --site-dir "publish/site" \
+            --targets-file "publish/targets.json" \
+            --key-name "custom-feed.pub" \
+            --apk-bin "publish/tools/apk"
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: publish/site
+          keep_files: true
