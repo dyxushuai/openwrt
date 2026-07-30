@@ -1,5 +1,8 @@
 kmod-ip6tables
+kmod-ipt-conntrack
 kmod-ipt-conntrack-extra
 kmod-ipt-ipopt
 kmod-ipt-ipset
+kmod-nf-conncount
+kmod-nf-ipt6
 kmod-nft-compat
