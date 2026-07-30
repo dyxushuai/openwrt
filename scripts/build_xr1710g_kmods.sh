@@ -234,11 +234,14 @@ for package in "${packages[@]}"; do
 
   metadata_file="$metadata_dir/${package}.json"
   "$apk_bin" adbdump --format json "${artifacts[0]}" > "$metadata_file"
-  jq -e --arg package "$package" '.name == $package' "$metadata_file" >/dev/null || {
+  jq -e --arg package "$package" \
+    '(.info // .).name == $package' "$metadata_file" >/dev/null || {
     echo "APK name validation failed: $package" >&2
     exit 1
   }
-  jq -e --arg arch "$arch" '(.arch // .architecture) == $arch' "$metadata_file" >/dev/null || {
+  jq -e --arg arch "$arch" \
+    '((.info // .).arch // (.info // .).architecture) == $arch' \
+    "$metadata_file" >/dev/null || {
     echo "APK architecture validation failed: $package" >&2
     exit 1
   }
