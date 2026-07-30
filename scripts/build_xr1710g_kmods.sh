@@ -151,6 +151,8 @@ done
 jobs="${JOBS:-2}"
 [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { echo "Invalid JOBS value: $jobs" >&2; exit 1; }
 make -j"$jobs" download
+make -j"$jobs" tools/install
+make -j"$jobs" toolchain/install
 make -j"$jobs" target/linux/compile
 
 mapfile -t baseline_vermagic_files < <(
