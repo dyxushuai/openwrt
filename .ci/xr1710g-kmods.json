@@ -1,0 +1,24 @@
+{
+  "releases": [
+    {
+      "id": "immortalwrt-xr1710g-20260719-5747ad3",
+      "release": "20260719-5747ad3",
+      "distribution": "immortalwrt",
+      "arch": "aarch64_cortex-a53",
+      "target_path": "airoha/an7581",
+      "source_url": "https://github.com/naoki66/ImmortalWrt-for-Gemtek-XR1710G.git",
+      "source_ref": "5747ad32a4b3ef2484d0b01a5af91ea140b29630",
+      "kernel_release": "6.18.38",
+      "kernel_package_release": "1",
+      "kernel_vermagic": "84454825e3136c38c92f481b32e76c13",
+      "config_seed_sha256": "c55bab6eb26b9548d9ba5e74272763d7dc160b74a63a4b82026f7ba644ae1e1f",
+      "config_url": "https://github.com/naoki66/ImmortalWrt-for-Gemtek-XR1710G/releases/download/20260719-5747ad3/config.buildinfo",
+      "config_sha256": "4d03f467f02ad429c83431493b5cbed851b71d09de8233b6f03655e32e94c72c",
+      "feeds_url": "https://github.com/naoki66/ImmortalWrt-for-Gemtek-XR1710G/releases/download/20260719-5747ad3/feeds.buildinfo",
+      "feeds_sha256": "4b88cb81a87f9afc95951d669e463d098008ba584909c4f3f1c7bc72c6be8c2b",
+      "firmware_url": "https://github.com/naoki66/ImmortalWrt-for-Gemtek-XR1710G/releases/download/20260719-5747ad3/immortalwrt-airoha-an7581-gemtek_xr1710g-ubi-squashfs-sysupgrade.itb",
+      "firmware_sha256": "7f923dbd732f44a15f256944b0877d53edf970b7308577fca1e7c98e6fad46b2",
+      "feed_path": "snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/xr1710g/20260719-5747ad3"
+    }
+  ]
+}
