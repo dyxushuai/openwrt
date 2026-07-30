@@ -2,6 +2,15 @@
 592c9bde9293c5421c05059ffd8d4f4b81760e70d3ec16db1fd63b412736f97f  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/custom/luci-i18n-mwan3helper-zh-cn-24.171.49014~3d589a6.apk
 469d88e6ffdf64a3a525081fcbaca953996512ad82e91e9552efb683e6cc42f6  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/custom/packages.adb
 5ecba89b527249c218f3a953ee23257bad083fee40fbdc49131ff4c5d5d44cf3  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/custom/pdnsd-alt-1.2.9b-r4.apk
+0258db92d6a9c1d2cae07ee240a1a980d7f8c42bde157d261700e389016edf9a  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/xr1710g/20260719-5747ad3/kmod-ip6tables-6.18.38-r1.apk
+ff3a6e5e6d48cdf6d58dc12ebeaa22c2ecd37346a467563d79f1cba718bf6358  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/xr1710g/20260719-5747ad3/kmod-ipt-conntrack-6.18.38-r1.apk
+2a564820fb95227da8030ddb57e9068f511425df255e2ed55324c2aaaae30f26  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/xr1710g/20260719-5747ad3/kmod-ipt-conntrack-extra-6.18.38-r1.apk
+724fda7f644c790abbb8adeed7b5f6178e673068d61fc620778dde52f1902b76  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/xr1710g/20260719-5747ad3/kmod-ipt-ipopt-6.18.38-r1.apk
+a5584d09d1ab8ed25e101e4bc42d461006bfc0a18a191f7f4393518c34b4a54c  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/xr1710g/20260719-5747ad3/kmod-ipt-ipset-6.18.38-r1.apk
+57a09d2b35779432fa48d036e97c227dbd2a044d8284fdde0cec662543c0495c  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/xr1710g/20260719-5747ad3/kmod-nf-conncount-6.18.38-r1.apk
+fdd0e57c8b2cb99696f7573aab44b497e3dd7d646804e881edad16c091705752  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/xr1710g/20260719-5747ad3/kmod-nf-ipt6-6.18.38-r1.apk
+458275aaf722ff5f5275ffcde9bfe2b1b661177bddaedd143c7f94c219729c7f  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/xr1710g/20260719-5747ad3/kmod-nft-compat-6.18.38-r1.apk
+e8ca46e5a48f60a375ca117ba8cccd179f7444a12a93f953a2fa88809ae20f1e  snapshots/immortalwrt/targets/airoha/an7581/packages/aarch64_cortex-a53/xr1710g/20260719-5747ad3/packages.adb
 7a6e04515add7674dd6d6157d92efff6de8bbc9fd4aeeaaecc76617b8cfa22f1  snapshots/packages/aarch64_cortex-a53/custom/luci-app-mwan3helper-1-r3.apk
 6a331a53b05b5ca72ab37d6e55e46720ad56321581906985b57a4d6ac7b76687  snapshots/packages/aarch64_cortex-a53/custom/packages.adb
 4d8c5f241fe1ce67e0c628b91aaa602b1edc1c30f73abf5c616ba5105a5768ff  snapshots/packages/aarch64_cortex-a53/custom/pdnsd-alt-1.2.9b-r4.apk
