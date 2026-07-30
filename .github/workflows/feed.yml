@@ -5,6 +5,17 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      target:
+        description: Build and publish one target or all targets
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - openwrt-filogic
+          - openwrt-x86-64
+          - immortalwrt-airoha-an7581
 
 permissions:
   contents: read
@@ -48,8 +59,20 @@ jobs:
 
       - name: Read targets matrix
         id: read
+        env:
+          SELECTED_TARGET: ${{ github.event.inputs.target }}
         run: |
-          echo "targets=$(jq -c '.targets' .ci/targets.json)" >> "$GITHUB_OUTPUT"
+          selected_target="$SELECTED_TARGET"
+          if [ -n "$selected_target" ] && [ "$selected_target" != "all" ]; then
+            targets="$(jq -c --arg id "$selected_target" '[.targets[] | select(.id == $id)]' .ci/targets.json)"
+          else
+            targets="$(jq -c '.targets' .ci/targets.json)"
+          fi
+          [ "$(jq 'length' <<<"$targets")" -gt 0 ] || {
+            echo "No configured target matched: $selected_target" >&2
+            exit 1
+          }
+          echo "targets=$targets" >> "$GITHUB_OUTPUT"
 
   build:
     runs-on: ubuntu-latest
@@ -75,20 +98,21 @@ jobs:
 
       - name: Build whitelist packages
         run: |
-          mkdir -p artifacts/${{ matrix.target.arch }}
+          mkdir -p "artifacts/${{ matrix.target.id }}"
           chmod +x scripts/build_sdk_packages.sh
           scripts/build_sdk_packages.sh \
             --sdk-url "${{ matrix.target.sdk_url }}" \
+            --sdk-sha256 "${{ matrix.target.sdk_sha256 }}" \
             --sdk-dir-glob "${{ matrix.target.sdk_dir_glob }}" \
             --repo-dir "$PWD" \
             --whitelist ".ci/package-whitelist.txt" \
-            --output-dir "artifacts/${{ matrix.target.arch }}"
+            --output-dir "artifacts/${{ matrix.target.id }}"
 
-      - name: Upload per-arch APK artifacts
+      - name: Upload per-target APK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: apk-${{ matrix.target.arch }}
-          path: artifacts/${{ matrix.target.arch }}
+          name: apk-${{ matrix.target.id }}
+          path: artifacts/${{ matrix.target.id }}
           if-no-files-found: error
           retention-days: 7
 
@@ -107,15 +131,36 @@ jobs:
         with:
           path: publish/artifacts
 
-      - name: Normalize artifact directory
+      - name: Seed site from the published feed
         run: |
-          mkdir -p publish/by-arch
+          mkdir -p publish/site
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null; then
+            git fetch --depth=1 origin gh-pages
+            git archive FETCH_HEAD | tar -x -C publish/site
+          else
+            rc=$?
+            [ "$rc" -eq 2 ] || exit "$rc"
+          fi
+
+      - name: Normalize artifact directory
+        env:
+          SELECTED_TARGET: ${{ github.event.inputs.target }}
+        run: |
+          mkdir -p publish/by-target
           for d in publish/artifacts/apk-*; do
             [ -d "$d" ] || continue
-            arch="${d##*/apk-}"
-            mkdir -p "publish/by-arch/$arch"
-            cp -f "$d"/*.apk "publish/by-arch/$arch/" || true
+            target_id="${d##*/apk-}"
+            mkdir -p "publish/by-target/$target_id"
+            cp -f "$d"/*.apk "publish/by-target/$target_id/" || true
           done
+          selected_target="$SELECTED_TARGET"
+          if [ -n "$selected_target" ] && [ "$selected_target" != "all" ]; then
+            jq --arg id "$selected_target" \
+              '{targets: [.targets[] | select(.id == $id)]}' \
+              .ci/targets.json > publish/targets.json
+          else
+            cp .ci/targets.json publish/targets.json
+          fi
           find publish -maxdepth 4 -type f | sort
 
       - name: Build feed indexes and signatures
@@ -123,17 +168,12 @@ jobs:
           APK_SIGN_PRIVATE_KEY_B64: ${{ secrets.APK_SIGN_PRIVATE_KEY_B64 }}
           APK_SIGN_PUBLIC_KEY: ${{ secrets.APK_SIGN_PUBLIC_KEY }}
         run: |
-          sdk_url="$(jq -r '.targets[] | select(.arch=="x86_64") | .sdk_url' .ci/targets.json)"
-          sdk_dir_glob="$(jq -r '.targets[] | select(.arch=="x86_64") | .sdk_dir_glob' .ci/targets.json)"
-          [ -n "$sdk_url" ] && [ "$sdk_url" != "null" ] || { echo "sdk_url not found in .ci/targets.json" >&2; exit 1; }
-          [ -n "$sdk_dir_glob" ] && [ "$sdk_dir_glob" != "null" ] || { echo "sdk_dir_glob not found in .ci/targets.json" >&2; exit 1; }
           chmod +x scripts/publish_feed.sh
           scripts/publish_feed.sh \
-            --artifacts-dir "publish/by-arch" \
+            --artifacts-dir "publish/by-target" \
             --site-dir "publish/site" \
-            --key-name "custom-feed.pub" \
-            --sdk-url "$sdk_url" \
-            --sdk-dir-glob "$sdk_dir_glob"
+            --targets-file "publish/targets.json" \
+            --key-name "custom-feed.pub"
 
       - name: Publish to gh-pages
         uses: peaceiris/actions-gh-pages@v4

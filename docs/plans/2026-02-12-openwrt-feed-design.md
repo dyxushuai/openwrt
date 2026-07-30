@@ -1,15 +1,16 @@
 # OpenWrt Feed Pipeline Design (Snapshots/APK)
 
 Date: 2026-02-12  
-Status: Approved (brainstormed and validated)
+Status: Approved; extended for ImmortalWrt/Airoha on 2026-07-30
 
 ## 1. Goals
 
-- Build and publish custom OpenWrt feed packages via GitHub Actions.
-- Support OpenWrt snapshots only (APK format).
-- Support two architectures:
+- Build and publish custom OpenWrt and ImmortalWrt feed packages via GitHub Actions.
+- Support snapshot APK feeds.
+- Support these SDK targets:
   - `aarch64_cortex-a53`
   - `x86_64`
+  - `airoha/an7581` using the ImmortalWrt `aarch64_cortex-a53` SDK
 - Publish to the same repository `gh-pages` branch.
 - Keep a single source of truth for publish scope with a package whitelist.
 - Produce both:
@@ -19,7 +20,6 @@ Status: Approved (brainstormed and validated)
 ## 2. Non-Goals
 
 - No 24.10.x / IPK dual track in phase 1.
-- No multi-upstream support (ImmortalWrt deferred).
 - No full firmware image build in CI; package-only pipeline.
 
 ## 3. Architecture
@@ -38,11 +38,11 @@ Status: Approved (brainstormed and validated)
 1. `changes` job
    - path filter gate to avoid unnecessary runs
 2. `build` matrix job
-   - per architecture
-   - download matching OpenWrt snapshots SDK
+   - per distribution target
+   - download the matching OpenWrt or ImmortalWrt snapshots SDK
    - inject local feed (`src-link`)
    - compile whitelist packages
-   - upload per-arch artifacts
+   - upload per-target artifacts
 3. `publish` job
    - depends on successful build matrix
    - download artifacts
@@ -78,6 +78,8 @@ Published under `gh-pages`:
 - `snapshots/packages/aarch64_cortex-a53/custom/*.apk`
 - `snapshots/packages/x86_64/custom/*.apk`
 - `snapshots/packages/<arch>/custom/packages.adb`
+- `snapshots/immortalwrt/targets/airoha/an7581/packages/<arch>/custom/*.apk`
+- `snapshots/immortalwrt/targets/airoha/an7581/packages/<arch>/custom/packages.adb`
 - `keys/<public-key-file>`
 - `checksums/sha256sum.txt`
 
@@ -99,12 +101,12 @@ Published under `gh-pages`:
 ## 10. Security Notes
 
 - No untrusted install path in official docs (no default `--allow-untrusted`).
+- Snapshot SDK archives must match the SHA-256 digest pinned in `.ci/targets.json`.
 - Package source hashes must be fixed and validated during build.
 - Any hash mismatch must fail the pipeline.
 
 ## 11. Future Extensions
 
-- Add ImmortalWrt matrix axis.
 - Add more architectures from `.ci/targets.json`.
 - Split source and releases into dedicated repositories if scale requires.
 - Add integration smoke tests against containerized OpenWrt rootfs.
